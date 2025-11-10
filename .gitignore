@@ -1,46 +1,63 @@
-# .gitignore
+# .gitignore for Gopam Project
 
 # -----------------
-# Python/FastAPI (server/)
+# Project-wide
+# -----------------
+# Ignore the main README and project file list
+README.md
+# Docker setup files
+docker-compose.yml
+Dockerfile*
+
+# -----------------
+# Python/FastAPI (backend/)
 # -----------------
 # Virtual environment
-venv/
-__pycache__/
-*.pyc
-.env
-instance/
-.pytest_cache
+/backend/venv/
+/backend/__pycache__/
+/backend/*.pyc
+/backend/.env               # Local environment variables
+/backend/instance/          # Flask/Alembic instance folder
+/backend/.pytest_cache
+
+# Database Migration files (Alembic)
+/backend/alembic.ini
+/database/migrations/versions/
 
 # -----------------
-# Node/Next.js (client/)
+# Node/Next.js (frontend/)
 # -----------------
 # Dependencies
-node_modules
-.npm
-# Dependency lock files
-package-lock.json
-npm-debug.log
-yarn.lock*
-pnpm-lock.yaml
+/frontend/node_modules
+/frontend/.npm
 
-# Production builds
-.next/
-out/
-dist/
+# Dependency lock files
+/frontend/package-lock.json
+/frontend/npm-debug.log
+/frontend/yarn.lock*
+/frontend/pnpm-lock.yaml
+
+# Production and build outputs
+/frontend/.next/
+/frontend/out/
+/frontend/dist/
 
 # Logs
-npm-debug.log*
-yarn-error.log
+/frontend/npm-debug.log*
+/frontend/yarn-error.log
 
-# Local env files
-.env.local
-.env.development.local
-.env.production.local
+# Local environment files
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.production.local
+/frontend/.env.staging.local
 
-# Typescript cache
-.tsbuildinfo
+# TypeScript cache
+/frontend/.tsbuildinfo
 
+# -----------------
 # IDE/Editor files
+# -----------------
 .vscode/
 .idea/
 
