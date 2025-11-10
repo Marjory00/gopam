@@ -1,0 +1,7 @@
+
+# requirements.txt
+fastapi
+uvicorn
+psycopg[binary]
+pydantic
+python-dotenv
