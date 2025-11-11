@@ -1,45 +1,41 @@
-// client/src/app/layout.tsx
+// frontend/src/app/layout.tsx
 
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import type { Metadata } from "next";
+import "../styles/globals.css";
 
-const inter = Inter({ subsets: ['latin'] });
+// Assuming you will create these components in frontend/src/components/
+import { Header } from '@/components/Header'; 
+import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Gopam - AI Recipe Management',
-  description: 'AI-Powered Recipe & Ingredient Management System.',
+  title: "Gopam | AI-Powered Recipe & Ingredient Management",
+  description: "Intelligent recipe matching and pantry management.",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <header className="bg-green-700 text-white p-4 shadow-md">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Gopam</h1> 
-            <nav>
-              {/* Added a simple [ICON: Home] text placeholder for now */}
-              <a href="/" className="px-3 hover:text-green-200">Home</a>
-              {/* Added a simple [ICON: Pantry] text placeholder for now */}
-              <a href="/pantry" className="px-3 hover:text-green-200">Pantry</a>
-              {/* Added a simple [ICON: Book] text placeholder for now */}
-              <a href="/recipes" className="px-3 hover:text-green-200">Recipes</a>
-              {/* Added new link for Recommendations page */}
-              <a href="/recommendations" className="px-3 hover:text-green-200">Recommendations</a>
-            </nav>
-          </div>
-        </header>
-        <main className="container mx-auto p-4 min-h-screen">
+      {/* The 'dark' class can be added here if you want to enable system-based
+        dark mode for the entire application, assuming you've configured it in Tailwind.
+        Example: <html lang="en" className="dark"> 
+      */}
+      
+      {/* Use the Tailwind font classes defined in globals.css */}
+      <body className="antialiased min-h-screen flex flex-col">
+        {/* --- 1. Header/Navigation Bar --- */}
+        <Header /> 
+
+        {/* --- 2. Main Content Area --- */}
+        <main className="flex-grow">
           {children}
         </main>
-        <footer className="bg-gray-100 p-4 text-center text-gray-600 border-t mt-8">
-          © {new Date().getFullYear()} Gopam. All rights reserved.
-        </footer>
+
+        {/* --- 3. Footer --- */}
+        <Footer />
       </body>
     </html>
   );

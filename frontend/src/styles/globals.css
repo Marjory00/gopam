@@ -1,0 +1,62 @@
+/* frontend/src/styles/globals.css */
+
+/* --- 1. TAILWIND V3 CORE DIRECTIVES (MUST COME FIRST) --- */
+/* Required for Tailwind CSS v3 used by Next.js 14 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* --- 2. CUSTOM ROOT VARIABLES (Optional, using Tailwind Defaults is often better) --- */
+/*
+If you need custom variables (e.g., for non-Tailwind components or theme switching),
+it's better to leverage Tailwind's theme config or utility classes directly.
+For the core background/foreground, we can define them like this.
+*/
+:root {
+  /* Default Light Theme */
+  --color-background: 255 255 255; /* white */
+  --color-foreground: 23 23 23;   /* neutral-900 */
+}
+
+/* --- 3. DARK MODE VARIABLES --- */
+/* Use the 'dark' class provided by Next.js and Tailwind */
+.dark {
+  --color-background: 10 10 10;    /* neutral-950 */
+  --color-foreground: 237 237 237; /* neutral-100 */
+}
+
+/* --- 4. APPLYING STYLES --- */
+body {
+  /*
+  Apply Tailwind's color variables by using the color space notation.
+  This allows you to use text-foreground and bg-background directly in components.
+  */
+  background-color: rgb(var(--color-background));
+  color: rgb(var(--color-foreground));
+  
+  /* Use Tailwind's default sans-serif font stack */
+  font-family: theme('fontFamily.sans');
+  
+  /* Optional: Smooth font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optional: Scrollbar styling for a cleaner look */
+/* Target all elements that might scroll */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.indigo.400') theme('colors.gray.200');
+}
+
+/* Target webkit browsers (Chrome, Safari) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: theme('colors.indigo.500');
+  border-radius: 4px;
+}

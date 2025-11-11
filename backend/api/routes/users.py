@@ -10,11 +10,12 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
 
-from app.database import get_db
-from app.models.user import User
-from app.schemas.user import UserCreate, User as UserSchema, UserLogin, Token
-from app.api.dependencies import get_current_user, create_access_token, get_password_hash, verify_password
-from app.config import settings
+# FIX 1: Update imports to use absolute paths from the backend root
+from database import get_db
+from models.user import User  # type: ignore # Assuming models/ is now in backend/
+from schemas.user import UserCreate, User as UserSchema, UserLogin, Token  # type: ignore # Assuming schemas/ is now in backend/
+from api.dependencies import get_current_user, create_access_token, get_password_hash, verify_password # Assuming api/dependencies.py is now in backend/api/
+from config import settings # Assuming config.py is now in backend/
 
 router = APIRouter()
 
@@ -43,6 +44,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         )
     
     # Create new user
+    # NOTE: Assuming User model has 'is_active' attribute set to True by default
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         email=user_data.email,
@@ -83,14 +85,17 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"}
         )
     
-    # Check if user is active
-    if not user.is_active:
+    # Check if user is active (Assuming 'is_active' exists on the User model)
+    # The original code has a logical check for user.is_active, but it's important to
+    # verify that the User model *actually* has this attribute defined.
+    if not hasattr(user, 'is_active') or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
     
     # Create access token
+    # NOTE: Assuming settings.ACCESS_TOKEN_EXPIRE_MINUTES is an integer
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email},

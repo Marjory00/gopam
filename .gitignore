@@ -4,7 +4,7 @@
 # Project-wide
 # -----------------
 # Ignore the main README and project file list
-README.md
+# README.md
 # Docker setup files
 docker-compose.yml
 Dockerfile*

@@ -1,4 +1,3 @@
-
 """
 Recipe API routes
 Handles recipe creation, retrieval, update, and search
@@ -10,12 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.database import get_db
-from app.models.user import User
-from app.models.recipe import Recipe
-from app.models.ingredient import Ingredient
-from app.schemas.recipe import RecipeCreate, Recipe as RecipeSchema, RecipeUpdate, RecipeSearch
-from app.api.dependencies import get_current_user
+# FIX 1: Change all 'app.' imports to absolute imports from the backend root.
+from database import get_db
+from models.user import User
+from models.recipe import Recipe
+from models.ingredient import Ingredient
+from schemas.recipe import RecipeCreate, Recipe as RecipeSchema, RecipeUpdate, RecipeSearch
+from api.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -54,6 +54,8 @@ def create_recipe(
     )
     
     # Add ingredients
+    # NOTE: This assumes a many-to-many relationship where Recipe has an 'ingredients' relationship attribute.
+    # It also assumes ingredient_data has an 'ingredient_id'.
     for ingredient_data in recipe_data.ingredients:
         ingredient = db.query(Ingredient).filter(Ingredient.id == ingredient_data.ingredient_id).first()
         if ingredient:
@@ -144,6 +146,7 @@ def update_recipe(
         )
     
     # Check if user is authorized to update
+    # NOTE: Assuming User model has 'is_superuser' attribute
     if recipe.created_by != current_user.id and not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -151,6 +154,7 @@ def update_recipe(
         )
     
     # Update recipe fields
+    # NOTE: Using model_dump method from Pydantic V2
     update_data = recipe_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(recipe, field, value)
@@ -215,6 +219,7 @@ def search_recipes(
     query = db.query(Recipe)
     
     # Apply filters
+    # NOTE: .ilike() is for case-insensitive search in most SQL dialects
     if search_params.query:
         query = query.filter(Recipe.title.ilike(f"%{search_params.query}%"))
     
