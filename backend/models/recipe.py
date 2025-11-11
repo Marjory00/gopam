@@ -1,22 +1,16 @@
 # backend/models/recipe.py
 
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Enum, DateTime, Table
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
 # Import Base from the database file
 from database import Base 
 
-# Import models necessary for relationships
-from models.ingredient import Ingredient 
-
-# --- Association Table for Recipe Ingredients (Many-to-Many) ---
-recipe_ingredients = Table(
-    'recipe_ingredients', 
-    Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id'), primary_key=True),
-    Column('ingredient_id', Integer, ForeignKey('ingredients.id'), primary_key=True)
-)
+# Import models necessary for relationships (assuming they exist in models/)
+# NOTE: We no longer import Ingredient directly for the relationship, 
+# but we import the Association Object instead.
+from models.recipe_ingredient import RecipeIngredient 
 
 # --- Recipe Model ---
 class Recipe(Base):
@@ -41,14 +35,18 @@ class Recipe(Base):
 
     # Audit and Relationships
     created_at = Column(DateTime, default=datetime.utcnow)
-    created_by = Column(Integer, ForeignKey('users.id')) # Assuming User model is loaded
+    created_by = Column(Integer, ForeignKey('users.id')) 
 
-    # Relationship to ingredients
-    ingredients = relationship(
-        "Ingredient", 
-        secondary=recipe_ingredients, 
-        backref="recipes"
+    # --- Relationships ---
+    
+    # FIX: Relationship to the Association Object
+    # This relationship links the Recipe to the data in the recipe_ingredients table.
+    recipe_ingredients = relationship(
+        "RecipeIngredient",
+        back_populates="recipe",
+        cascade="all, delete-orphan" # Allows cascade delete of association objects
     )
     
     # Relationship back to the User who created it
-    owner = relationship("User", backref="created_recipes")
+    # FIX: Use back_populates for standard bi-directional relationship management
+    owner = relationship("User", back_populates="created_recipes")

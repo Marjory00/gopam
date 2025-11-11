@@ -1,3 +1,4 @@
+# backend/api/routes/users.py
 """
 User API routes
 Handles user registration, authentication, and profile management
@@ -10,12 +11,12 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
 
-# FIX 1: Update imports to use absolute paths from the backend root
+# Finalized absolute imports for the current project structure (backend/...)
 from database import get_db
-from models.user import User  # type: ignore # Assuming models/ is now in backend/
-from schemas.user import UserCreate, User as UserSchema, UserLogin, Token  # type: ignore # Assuming schemas/ is now in backend/
-from api.dependencies import get_current_user, create_access_token, get_password_hash, verify_password # Assuming api/dependencies.py is now in backend/api/
-from config import settings # Assuming config.py is now in backend/
+from models.user import User
+from schemas.user import UserCreate, User as UserSchema, UserLogin, Token
+from api.dependencies import get_current_user, create_access_token, get_password_hash, verify_password
+from config import settings
 
 router = APIRouter()
 
@@ -44,12 +45,12 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         )
     
     # Create new user
-    # NOTE: Assuming User model has 'is_active' attribute set to True by default
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
         full_name=user_data.full_name
+        # is_active defaults to True in models/user.py
     )
     
     db.add(db_user)
@@ -72,12 +73,12 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         JWT access token
         
     Raises:
-        HTTPException: If credentials are invalid
+        HTTPException: If credentials are invalid or account is inactive
     """
     # Find user by email
     user = db.query(User).filter(User.email == user_credentials.email).first()
     
-    # Verify credentials
+    # 1. Verify credentials
     if not user or not verify_password(user_credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,17 +86,14 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"}
         )
     
-    # Check if user is active (Assuming 'is_active' exists on the User model)
-    # The original code has a logical check for user.is_active, but it's important to
-    # verify that the User model *actually* has this attribute defined.
-    if not hasattr(user, 'is_active') or not user.is_active:
+    # 2. Check if user is active (Standardized check)
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
     
-    # Create access token
-    # NOTE: Assuming settings.ACCESS_TOKEN_EXPIRE_MINUTES is an integer
+    # 3. Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email},
@@ -141,5 +139,8 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+    
+    # Note: If security is needed, you would add an authorization check here 
+    # to ensure only admins or the user themselves can view the profile.
     
     return user

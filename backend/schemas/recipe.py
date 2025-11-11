@@ -4,18 +4,32 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-# --- Ingredient Schema (Needed for nested data in Recipe) ---
+# --- Ingredient Schemas (Reference for other models) ---
 
 class IngredientBase(BaseModel):
     name: str = Field(..., description="Name of the ingredient")
     unit: Optional[str] = Field(None, description="Standard unit of measure")
 
-class IngredientCreate(IngredientBase):
-    pass # Simple alias for now
-
 class Ingredient(IngredientBase):
+    """Schema for reading a generic Ingredient."""
     id: int
     is_pantry_staple: bool
+
+    class Config:
+        from_attributes = True
+
+# --- Association Object Schema (NEW) ---
+
+class RecipeIngredientSchema(BaseModel):
+    """
+    Schema for the RecipeIngredient association object.
+    This holds the quantity/unit AND nests the Ingredient details.
+    """
+    quantity: float = Field(..., gt=0)
+    unit: str
+    
+    # Nested Ingredient schema to display the details of the ingredient itself
+    ingredient: Ingredient 
 
     class Config:
         from_attributes = True
@@ -23,10 +37,14 @@ class Ingredient(IngredientBase):
 # --- Recipe Schemas ---
 
 class IngredientReference(BaseModel):
-    """Schema used when creating a recipe to link ingredients."""
-    ingredient_id: int
-    quantity: Optional[float] = None
-    unit: Optional[str] = None
+    """
+    Schema used when creating/updating a recipe to link ingredients with specific details.
+    This maps directly to the data needed for the RecipeIngredient Association Model.
+    """
+    ingredient_id: int = Field(..., description="ID of the generic ingredient.")
+    quantity: float = Field(..., gt=0, description="Required quantity for this recipe.")
+    unit: str = Field(..., description="Required unit for this recipe.")
+
 
 class RecipeBase(BaseModel):
     """Base fields for a recipe."""
@@ -44,8 +62,8 @@ class RecipeBase(BaseModel):
 
 class RecipeCreate(RecipeBase):
     """Schema for creating a new recipe (includes ingredient links)."""
-    ingredients: List[IngredientReference] = Field(default_factory=list, description="List of ingredient references")
-    # created_by is derived from the token/current_user, so it's not here.
+    # The list now uses the fixed IngredientReference to capture quantity/unit
+    ingredients: List[IngredientReference] = Field(default_factory=list, description="List of ingredient references with quantity/unit")
 
 class RecipeUpdate(RecipeBase):
     """Schema for updating an existing recipe."""
@@ -53,7 +71,8 @@ class RecipeUpdate(RecipeBase):
     title: Optional[str] = None
     instructions: Optional[str] = None
     
-    # You might need a separate mechanism to update ingredients if this is complex
+    # NOTE: Updating ingredients is complex and usually requires separate PATCH/PUT routes
+    # or overwriting the entire list, which is not included here for simplicity.
 
 class RecipeSearch(BaseModel):
     """Schema for advanced recipe search filters."""
@@ -71,9 +90,9 @@ class Recipe(RecipeBase):
     created_by: int
     created_at: datetime
     
-    # Nested list of ingredient schemas for the full response
-    ingredients: List[Ingredient] = Field(default_factory=list)
+    # FIX: Nested list now uses the Association Object Schema (RecipeIngredientSchema).
+    # This structure mirrors the SQLAlchemy relationship: Recipe -> [RecipeIngredientSchema]
+    recipe_ingredients: List[RecipeIngredientSchema] = Field(default_factory=list)
 
     class Config:
-        # Pydantic V2 setting to allow mapping from SQLAlchemy models
         from_attributes = True
