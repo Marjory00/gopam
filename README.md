@@ -108,6 +108,18 @@ gopam/
 
 ---
 
+## 🛣️ Future Roadmap (Phase II)
+
+The following features are planned for future development to enhance the platform's intelligence and utility:
+
+* **Shopping List Generator:** Automatically create a shopping list based on the selected meal plan, cross-referenced against the current pantry inventory.
+* **Image Recognition (ML):** Allow users to upload a picture of a receipt or grocery shelf for automatic ingredient population in the pantry (via a service like OpenCV or a dedicated vision model).
+* **Cost Analysis:** Integrate pricing data to estimate the cost per recipe and analyze total potential savings from reduced food waste.
+* **External API Integration:** Connect to third-party services for real-time nutritional data verification or recipe source expansion.
+
+---
+
+
 ## 🚀 Getting Started
 
 Follow these steps to set up and run the Gopam project locally.
