@@ -3,8 +3,6 @@
 
 ## Project Description
 
-## Project Overview
-
 Gopam is a modern, **full-stack application** designed to revolutionize home cooking, ingredient management, and meal planning. It seamlessly integrates traditional relational data (recipes, pantry inventory) with cutting-edge **Artificial Intelligence and Machine Learning (AI/ML)** capabilities to deliver highly personalized recipe recommendations, smart ingredient substitutions, and real-time food waste analysis.
 
 This project is highly relevant in the current tech landscape, solving a common household problem by combining a classic database challenge with modern, interactive AI features to create a powerful, intuitive user experience.
