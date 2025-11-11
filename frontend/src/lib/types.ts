@@ -1,86 +1,155 @@
 // frontend/src/lib/types.ts
 
-// --- 1. CORE ENTITIES ---
+// --- 1. USER & AUTHENTICATION ---
 
 /**
- * Base structure for any primary resource (e.g., Recipe, PantryItem)
- * that is stored in the database.
+ * Defines the user object as returned by the /api/users/me endpoint.
+ * Corresponds to backend/schemas/user.py -> User
  */
-export interface Resource {
-  id: number;
-  name: string;
-  // Add common audit fields here later (e.g., createdAt, ownerId)
+export interface User {
+    id: number;
+    email: string;
+    full_name: string | null;
+    is_active: boolean;
+    created_at: string; // ISO date string
 }
 
 /**
- * Defines the structure for a Recipe used in the library and meal planner.
+ * Defines the payload for the login request.
+ * Corresponds to backend/schemas/user.py -> UserLogin
  */
-export interface Recipe extends Resource {
-  description: string;
-  tags: string[];
-  prepTime: string; // e.g., "15 min"
-  servings: number;
-  // Placeholder for ingredient details which would be an array of Ingredient
-  // ingredients: Ingredient[]; 
+export interface LoginRequest {
+    email: string;
+    password: string;
 }
 
 /**
- * Defines an item currently tracked in the user's pantry/inventory.
+ * Defines the response from the /api/auth/login endpoint.
+ * Corresponds to backend/schemas/user.py -> Token
  */
-export interface PantryItem extends Resource {
-  quantity: string; // e.g., "2", "half"
-  unit: string;     // e.g., "cups", "lbs", "head"
-  addedDate: string; // ISO Date string (YYYY-MM-DD)
-  expirationDate: string | null; // ISO Date string, null if non-perishable
+export interface AuthResponse {
+    access_token: string;
+    token_type: string; // Should be "bearer"
 }
 
-// --- 2. MEAL PLANNING ---
+// --- 2. INGREDIENTS & PANTRY ---
 
 /**
- * Defines a single meal slot within the MealPlan.
+ * Defines a master ingredient object.
+ * Corresponds to backend/schemas/ingredient.py -> Ingredient
  */
-export interface MealSlot {
-  time: 'Breakfast' | 'Lunch' | 'Dinner';
-  recipeId: number | null;
-  recipeTitle: string | null;
-  // Could include planned quantity or servings here
+export interface Ingredient {
+    id: number;
+    name: string;
+    unit: string | null;
+    is_pantry_staple: boolean;
 }
 
 /**
- * Defines the structure for a day's meal plan entry.
+ * Defines the structure for creating a new PantryItem or an association link.
+ * This is the API payload for POST /api/pantry/
+ * Corresponds to backend/schemas/pantry.py -> PantryItemCreate
  */
-export interface MealPlan {
-  day: string; // e.g., "Monday"
-  meals: MealSlot[];
+export interface IngredientReference {
+    ingredient_id: number;
+    quantity: number; // Must be a float/number for the backend
+    unit: string;
+    expiration_date?: string | null; // Optional ISO date string
 }
 
-// --- 3. AI RECOMMENDATIONS ---
+
+/**
+ * Defines the structure of a PantryItem as returned by the API.
+ * This includes the nested Ingredient object.
+ * Corresponds to backend/schemas/pantry.py -> PantryItem
+ */
+export interface PantryItem {
+    id: number;
+    user_id: number;
+    quantity: number;
+    unit: string;
+    expiration_date: string | null;
+    added_at: string;
+    
+    // Nested Ingredient details from the relationship
+    ingredient: Ingredient; 
+}
+
+
+// --- 3. RECIPES ---
+
+/**
+ * Defines the nested association object for reading a Recipe.
+ * Corresponds to backend/schemas/recipe.py -> RecipeIngredientSchema
+ */
+export interface RecipeIngredientSchema {
+    quantity: number;
+    unit: string;
+    ingredient: Ingredient; // Nested ingredient details
+}
+
+/**
+ * Defines the full Recipe object returned by the API.
+ * Corresponds to backend/schemas/recipe.py -> Recipe
+ */
+export interface Recipe {
+    id: number;
+    created_by: number;
+    created_at: string;
+    title: string;
+    description: string | null;
+    image_url: string | null;
+    prep_time: number | null; // minutes
+    cook_time: number | null; // minutes
+    servings: number | null;
+    difficulty_level: string | null;
+    instructions: string;
+    cuisine_type: string | null;
+    meal_type: string | null;
+    nutrition_data: string | null;
+    
+    // List of association objects
+    recipe_ingredients: RecipeIngredientSchema[]; 
+}
+
+/**
+ * Defines the structure for creating a new recipe.
+ * Corresponds to backend/schemas/recipe.py -> RecipeCreate
+ */
+export interface RecipeCreate {
+    title: string;
+    description?: string | null;
+    image_url?: string | null;
+    prep_time?: number | null;
+    cook_time?: number | null;
+    servings?: number | null;
+    difficulty_level?: string | null;
+    instructions: string;
+    cuisine_type?: string | null;
+    meal_type?: string | null;
+    nutrition_data?: string | null;
+    
+    // List of ingredient references with quantity/unit
+    ingredients: IngredientReference[]; 
+}
+
+// --- 4. UTILITY & AI ---
+
+/**
+ * Defines the expected response for the FastAPI root health check.
+ * Corresponds to the simple object returned by the root endpoint.
+ */
+export interface HealthCheckResponse {
+    message: string;
+}
+
+// --- 5. AI RECOMMENDATIONS (Placeholder, will need refinement later) ---
 
 /**
  * Defines the structure for a recommended recipe result from the AI engine.
  */
-export interface RecommendedRecipe extends Resource {
-  description: string;
-  matchScore: number; // Percentage (0-100) of ingredients available
-  missingIngredients: string[]; // List of ingredient names the user lacks
-}
-
-// --- 4. API / UTILITY TYPES ---
-
-/**
- * Defines the expected response for the FastAPI root health check.
- */
-export interface HealthCheckResponse {
-  message: string;
-}
-
-/**
- * Defines the structure for data fetched from a list endpoint.
- * Useful when using a data fetching library like TanStack Query.
- */
-export interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
+export interface RecommendedRecipe {
+    recipe: Recipe;
+    match_score: number; // Percentage (0-100) of ingredients available
+    missing_ingredients: Ingredient[]; // List of ingredient objects the user lacks
 }
