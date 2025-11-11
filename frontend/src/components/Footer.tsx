@@ -1,4 +1,3 @@
-
 // frontend/src/components/Footer.tsx
 
 import React from 'react';
@@ -27,12 +26,12 @@ export function Footer() {
               API Docs
             </a>
             <a 
-              href="https://github.com/tramar/gopam" // Placeholder link
+              href="https://github.com/yourusername/gopam" // Updated placeholder URL
               target="_blank" 
               rel="noopener noreferrer" 
               className="hover:text-indigo-400 transition-colors"
             >
-              GitHub (tramar)
+              GitHub (Gopam)
             </a>
           </div>
         </div>
