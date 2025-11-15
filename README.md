@@ -41,67 +41,88 @@ The project uses a clean, two-part **Monorepo structure** (Client/Server) with a
 
 ```
 gopam/
-├── backend/
-│   ├── api/
-│   │   ├── routes/
-│   │   │   ├── users.py       # User management (Auth, Profile)
-│   │   │   ├── recipes.py     # Recipe CRUD and search
-│   │   │   ├── pantry.py      # Inventory/Pantry Item management
-│   │   │   └── ai.py          # AI recommendations, recipe generation
-│   │   └── dependencies.py   # Auth (JWT) and Password Hashing logic
-│   ├── models/
-│   │   ├── __init__.py        # Initializes package (Required for imports)
-│   │   ├── user.py
-│   │   ├── recipe.py
-│   │   ├── ingredient.py
-│   │   └── pantry_item.py     # Assumed model for pantry tracking
-│   ├── schemas/
+├── backend/                                 # FastAPI/Python backend root
+│   ├── api/                                 # Non-application-specific API tools
+│   │   └── dependencies.py                 # Authentication (JWT token), database session, and common utilities
+│   ├── app/                                 # Main application logic module
+│   │   ├── services/                       # Business logic (processing, matching, AI interaction)
+│   │   │   ├── __init__.py                 # Python package initialization
+│   │   │   ├── ai_recommender.py           # Logic for calling LLMs/AI to generate recipes/recommendations
+│   │   │   └── recipe_matcher.py           # Logic for matching user's pantry items to available recipes
+│   │   └── __init__.py                     # Python package initialization for 'app'
+│   ├── models/                             # SQLAlchemy ORM models (Database structure definitions)
 │   │   ├── __init__.py
-│   │   ├── user.py            # Pydantic schemas (UserCreate, Token)
-│   │   ├── recipe.py
-│   │   └── pantry.py          # Pydantic schemas (PantryItem, etc.)
-│   ├── services/
-│   │   ├── recipe_matcher.py
-│   │   └── ai_recommender.py
+│   │   ├── ingredient.py                   # Base ingredient model
+│   │   ├── pantry_item.py                  # User-specific inventory tracking model
+│   │   ├── recipe_ingredient.py            # Association model (Many-to-Many link between Recipe and Ingredient)
+│   │   ├── recipe.py                       # Recipe model
+│   │   └── user.py                         # User model
+│   ├── schemas/                            # Pydantic Schemas (Request/Response data validation)
+│   │   ├── __init__.py
+│   │   ├── pantry.py                       # Schemas for PantryItem CRUD
+│   │   ├── recipe.py                       # Schemas for Recipe CRUD and search
+│   │   └── user.py                         # Schemas for User authentication and profile
 │   ├── tests/
-│   │   └── test_api.py
-│   ├── main.py                # FastAPI entry point (Moved to root)
-│   ├── config.py              # Configuration settings (Moved to root)
-│   ├── database.py            # SQLAlchemy engine and get_db() (Moved to root)
-│   ├── requirements.txt       
-│   ├── .env.example
-│   └── alembic.ini            
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── recipes/
+│   │   └── test_api.py                     # Integration tests for FastAPI endpoints
+│   ├── alembic.ini                         # Configuration file for Alembic (database migration tool)
+│   ├── config.py                           # Application settings and environment variable loading
+│   ├── database.py                         # SQLAlchemy engine, session setup, and base declarations
+│   ├── gopam_dev.db                        # SQLite database file (development environment)
+│   ├── main.py                             # Main FastAPI application entry point
+│   └── requirements.txt                    # Python dependency list
+├── database/                             # Contains external or manual database scripts
+│   └── init.sql                          # SQL script for initial database setup or seeding
+├── frontend/                             # Next.js frontend root
+│   ├── public/                             # Static assets accessible via the root URL
+│   │   ├── file.svg
+│   │   ├── globe.svg
+│   │   ├── next.svg
+│   │   ├── vercel.svg
+│   │   └── window.svg
+│   ├── src/                                # Main source code directory
+│   │   ├── app/                            # Next.js App Router directory
+│   │   │   ├── match/                      # Route: /match (Page to match pantry ingredients to recipes)
 │   │   │   │   └── page.tsx
-│   │   │   ├── pantry/
+│   │   │   ├── meal-plan/                  # Route: /meal-plan (Page for weekly/monthly meal planning)
 │   │   │   │   └── page.tsx
-│   │   │   ├── meal-plan/
+│   │   │   ├── pantry/                     # Route: /pantry (User inventory management)
 │   │   │   │   └── page.tsx
-│   │   │   ├── layout.tsx         
-│   │   │   └── page.tsx           
-│   │   ├── components/
-│   │   │   ├── ui/
-│   │   │   │   └── button.tsx     # Generic UI button (Needed for MealPlanner)
-│   │   │   ├── RecipeCard.tsx
-│   │   │   ├── SearchBar.tsx
-│   │   │   ├── MealPlanner.tsx   # Main meal planner component
-│   │   │   └── Footer.tsx         # Global footer
-│   │   ├── lib/
-│   │   │   ├── api.ts
-│   │   │   └── types.ts
+│   │   │   ├── recipes/                    # Route: /recipes (Recipe base page)
+│   │   │   │   ├── (list)/                 # Grouping folder for recipe list index
+│   │   │   │   │   └── page.tsx            # Route: /recipes (Main listing page)
+│   │   │   │   ├── [recipes_id]/           # Dynamic Route: /recipes/[id] (Single recipe view)
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── new/                    # Route: /recipes/new (Page for adding a new recipe)
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx                # Recipe root page (may be a shared layout)
+│   │   │   ├── recommendations/            # Route: /recommendations (Page for AI recipe suggestions)
+│   │   │   │   └── page.tsx
+│   │   │   ├── favicon.ico                 # Application favicon
+│   │   │   └── page.tsx                    # Route: / (Homepage/Landing page)
+│   │   ├── components/                     # Reusable UI components
+│   │   │   ├── ui/                         # Shared, atomic components (e.g., ShadCN components)
+│   │   │   │   └── button.tsx              # Generic button component
+│   │   │   ├── AppWrapper.tsx              # Top-level wrapper (providers, context, auth)
+│   │   │   ├── Footer.tsx                  # Global footer component
+│   │   │   ├── Header.tsx                  # Global navigation bar component
+│   │   │   ├── MealPlanner.tsx             # Complex component for meal planning logic/display
+│   │   │   ├── RecipeCard.tsx              # Component for displaying a recipe summary
+│   │   │   └── SearchBar.tsx               # Component for searching recipes/ingredients
+│   │   ├── lib/                            # Utility and core logic functions
+│   │   │   ├── api.ts                      # Functions for interacting with the FastAPI backend
+│   │   │   ├── auth.tsx                    # Context or hooks for handling client-side authentication
+│   │   │   └── types.ts                    # Shared TypeScript interfaces (e.g., Recipe, User, PantryItem)
 │   │   └── styles/
-│   │       └── globals.css
-│   ├── public/
-│   ├── package.json               
-│   ├── tsconfig.json
-│   └── next.config.js
-├── database/
-│   └── init.sql                   
-├── .gitignore
-└── README.md
+│   │       └── globals.css                 # Global Tailwind CSS styles
+│   ├── eslint.config.mjs                   # ESLint configuration
+│   ├── next.config.js                      # Next.js build configuration
+│   ├── package.json                        # Frontend npm dependencies and scripts
+│   ├── postcss.config.js                   # PostCSS configuration (used by Tailwind)
+│   ├── tailwind.config.js                  # Tailwind CSS custom configuration
+│   └── tsconfig.json                       # TypeScript compiler configuration
+├── .hintrc                                 # Configuration for code hints/linters
+├── package.json                            # Root dependencies (e.g., workspace configuration, shared scripts)
+└── README.md                               # Project description and setup instructions
 ```
 
 ---
@@ -199,3 +220,6 @@ We welcome contributions! If you're interested in improving Gopam, please follow
 4.  **Run Tests:** Ensure all existing tests pass and write new tests for your features (if applicable).
 5.  **Push to the Branch:** `git push origin feature/your-feature-name`
 6.  **Open a Pull Request (PR):** Target the `main` branch and provide a detailed description of your changes.
+
+
+

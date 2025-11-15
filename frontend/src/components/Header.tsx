@@ -1,14 +1,15 @@
-// frontend/src/components/Header.tsx
+'use client'; 
 
-'use client'; // <-- FIX: Marks this component as a client component to allow for 'onClick' handlers and interactivity.
-
+import { useState } from 'react'; 
 import Link from 'next/link';
-import { Package, FlaskConical, Calendar, Bot, Menu } from 'lucide-react';
+import { Package, FlaskConical, Calendar, Bot, Menu, X } from 'lucide-react'; 
 
 /**
  * Global application navigation bar.
  */
 export function Header() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navItems = [
     { name: 'Pantry', href: '/pantry', icon: Package },
     { name: 'Recipes', href: '/recipes', icon: FlaskConical },
@@ -16,9 +17,12 @@ export function Header() {
     { name: 'AI Recommendations', href: '/recommendations', icon: Bot },
   ];
 
-  const handleMobileMenuClick = () => {
-    // FIX: Using console.log instead of alert for smoother placeholder
-    console.log('Mobile menu toggle clicked (Functionality not implemented yet).');
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen((prev) => !prev);
+  };
+  
+  const handleNavigationClick = () => {
+      setIsMobileMenuOpen(false);
   };
 
   return (
@@ -27,7 +31,11 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo/Home Link */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-3xl font-extrabold text-indigo-600 hover:text-indigo-800 transition-colors">
+            <Link 
+              href="/" 
+              className="text-3xl font-extrabold text-indigo-600 hover:text-indigo-800 transition-colors" 
+              onClick={handleNavigationClick} 
+            >
               Gopam
             </Link>
           </div>
@@ -38,7 +46,6 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                // Use hover:text-indigo-600 for consistency with logo color
                 className="text-gray-600 hover:bg-gray-50 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors"
               >
                 <item.icon className="w-4 h-4 mr-2" />
@@ -47,18 +54,41 @@ export function Header() {
             ))}
           </nav>
 
-          {/* Mobile Menu Button (Placeholder) */}
+          {/* Mobile Menu Button */}
           <div className="sm:hidden">
             <button
               type="button"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
               aria-controls="mobile-menu"
-              aria-expanded="false"
-              onClick={handleMobileMenuClick}
+              aria-expanded={isMobileMenuOpen}
+              onClick={handleMobileMenuToggle} 
             >
-              <Menu className="h-6 w-6" />
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" aria-label="Close menu" />
+              ) : (
+                <Menu className="h-6 w-6" aria-label="Open menu" />
+              )}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Content, conditionally rendered */}
+      <div className={`${isMobileMenuOpen ? 'flex flex-col w-full' : 'hidden'} sm:hidden`} id="mobile-menu">
+        <div className="px-2 pt-2 pb-3 space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              // FIX: Replaced 'block' with 'w-full' to resolve cssConflict warning. 
+              // The 'flex items-center' is kept for icon alignment.
+              className="text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 w-full px-3 py-2 rounded-md text-base font-medium flex items-center transition-colors"
+              onClick={handleNavigationClick} 
+            >
+              <item.icon className="w-5 h-5 mr-3" />
+              {item.name}
+            </Link>
+          ))}
         </div>
       </div>
     </header>
