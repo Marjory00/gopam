@@ -4,17 +4,22 @@
   ],
   "browserslist": [
     "defaults",
-    "not ie 11",
-    "not chrome <= 112",
-    "not ios_saf <= 26",
-    "not safari <= 26",
-    "not samsung <= 28"
+    "not IE 11",
+    "last 2 versions",
+    "not dead",
+    "not < 0.2%"
   ],
   "hints": {
     "axe/name-role-value": [
       "default",
       {
         "button-name": "off"
+      }
+    ],
+    "axe/structure": [
+      "default",
+      {
+        "list": "off"
       }
     ]
   }

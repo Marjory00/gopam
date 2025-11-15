@@ -3,14 +3,17 @@
 import axios, { AxiosInstance } from 'axios';
 import {
     PantryItem,
-    IngredientReference,
-    AuthResponse,
+    PantryItemCreate, // FIX: Use the specific create type
+    TokenResponse,    // FIX: Use the renamed type
     LoginRequest,
     User,
     HealthCheckResponse,
-    Recipe, // <--- Ensure Recipe is imported
-    RecipeCreate, // <--- Ensure RecipeCreate is imported for creation
-    RecipeSearch // <--- Ensure RecipeSearch is imported for searching
+    RecipeDetail,     // FIX: Use RecipeDetail for fetching single recipes
+    RecipeList,       // FIX: Use RecipeList for fetching lists
+    RecipeCreate,
+    RecipeSearch,
+    Ingredient,       // ADDED: Ingredient for master list
+    RecommendedRecipe // ADDED: RecommendedRecipe for AI matching
 } from './types'; // Import necessary types
 
 // --- 1. CONFIGURATION ---
@@ -38,20 +41,19 @@ const setAuthHeader = (token: string) => ({
 });
 
 // --- 2. AUTHENTICATION ENDPOINTS ---
-// (No changes needed here)
 
 /**
  * Performs user login.
  * API Route: POST /api/auth/login
  */
-export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/login', credentials);
+export const login = async (credentials: LoginRequest): Promise<TokenResponse> => { // FIX: Use TokenResponse
+    const response = await api.post<TokenResponse>('/api/auth/login', credentials);
     return response.data;
 };
 
 /**
  * Fetches the current authenticated user's details.
- * API Route: GET /api/users/me (Standard FastAPI pattern for user retrieval)
+ * API Route: GET /api/users/me
  */
 export const fetchCurrentUser = async (token: string): Promise<User> => {
     const response = await api.get<User>('/api/users/me', setAuthHeader(token));
@@ -60,7 +62,6 @@ export const fetchCurrentUser = async (token: string): Promise<User> => {
 
 
 // --- 3. PANTRY ENDPOINTS ---
-// (No changes needed here)
 
 /**
  * Fetching all pantry items for the current user.
@@ -73,12 +74,11 @@ export const fetchPantryItems = async (token: string): Promise<PantryItem[]> => 
 
 /**
  * Adding a new pantry item.
- * The payload (itemData) must match the IngredientReference schema from the backend.
  * API Route: POST /api/pantry/
  */
 export const addPantryItem = async (
     token: string, 
-    itemData: IngredientReference
+    itemData: PantryItemCreate // FIX: Use PantryItemCreate
 ): Promise<PantryItem> => {
     const response = await api.post<PantryItem>('/api/pantry/', itemData, setAuthHeader(token));
     return response.data;
@@ -92,16 +92,26 @@ export const removePantryItem = async (token: string, itemId: number): Promise<v
     await api.delete(`/api/pantry/${itemId}`, setAuthHeader(token));
 };
 
+// --- 4. INGREDIENT ENDPOINTS (ADDED) ---
 
-// --- 4. RECIPE ENDPOINTS (ADDED) ---
+/**
+ * Fetching the master list of all available ingredients.
+ * API Route: GET /api/ingredients/
+ */
+export const fetchAllIngredients = async (token: string): Promise<Ingredient[]> => {
+    const response = await api.get<Ingredient[]>('/api/ingredients/', setAuthHeader(token));
+    return response.data;
+};
+
+
+// --- 5. RECIPE ENDPOINTS ---
 
 /**
  * Fetching all recipes (list) from the backend.
  * API Route: GET /api/recipes/
  */
-export const fetchAllRecipes = async (token: string): Promise<Recipe[]> => {
-    // Assuming the recipe route is /api/recipes/
-    const response = await api.get<Recipe[]>('/api/recipes/', setAuthHeader(token));
+export const fetchAllRecipes = async (token: string): Promise<RecipeList[]> => { // FIX: Use RecipeList
+    const response = await api.get<RecipeList[]>('/api/recipes/', setAuthHeader(token));
     return response.data;
 };
 
@@ -109,8 +119,8 @@ export const fetchAllRecipes = async (token: string): Promise<Recipe[]> => {
  * Fetching a single recipe by ID.
  * API Route: GET /api/recipes/{recipe_id}
  */
-export const fetchRecipeById = async (token: string, recipeId: number): Promise<Recipe> => {
-    const response = await api.get<Recipe>(`/api/recipes/${recipeId}`, setAuthHeader(token));
+export const fetchRecipeById = async (token: string, recipeId: number): Promise<RecipeDetail> => { // FIX: Use RecipeDetail
+    const response = await api.get<RecipeDetail>(`/api/recipes/${recipeId}`, setAuthHeader(token));
     return response.data;
 };
 
@@ -118,8 +128,8 @@ export const fetchRecipeById = async (token: string, recipeId: number): Promise<
  * Creating a new recipe.
  * API Route: POST /api/recipes/
  */
-export const createRecipe = async (token: string, recipeData: RecipeCreate): Promise<Recipe> => {
-    const response = await api.post<Recipe>('/api/recipes/', recipeData, setAuthHeader(token));
+export const createRecipe = async (token: string, recipeData: RecipeCreate): Promise<RecipeDetail> => { // FIX: Expect RecipeDetail back
+    const response = await api.post<RecipeDetail>('/api/recipes/', recipeData, setAuthHeader(token));
     return response.data;
 };
 
@@ -127,13 +137,28 @@ export const createRecipe = async (token: string, recipeData: RecipeCreate): Pro
  * Searching recipes with filters.
  * API Route: POST /api/recipes/search
  */
-export const searchRecipes = async (token: string, searchParams: RecipeSearch): Promise<Recipe[]> => {
-    const response = await api.post<Recipe[]>('/api/recipes/search', searchParams, setAuthHeader(token));
+export const searchRecipes = async (token: string, searchParams: RecipeSearch): Promise<RecipeList[]> => { // FIX: Expect RecipeList[] back
+    const response = await api.post<RecipeList[]>('/api/recipes/search', searchParams, setAuthHeader(token));
+    return response.data;
+};
+
+// --- 6. AI MATCHING ENDPOINTS (ADDED) ---
+
+/**
+ * Gets AI recipe recommendations based on provided ingredient IDs.
+ * API Route: POST /api/ai/match
+ */
+export const getRecipeMatch = async (token: string, ingredientIds: number[]): Promise<RecommendedRecipe[]> => {
+    const response = await api.post<RecommendedRecipe[]>(
+        '/api/ai/match', 
+        { ingredient_ids: ingredientIds }, // Backend expects JSON payload with 'ingredient_ids' key
+        setAuthHeader(token)
+    );
     return response.data;
 };
 
 
-// --- 5. UTILITY / HEALTH CHECK (UPDATED SECTION NUMBER) ---
+// --- 7. UTILITY / HEALTH CHECK ---
 
 /**
  * Health Check: GET /

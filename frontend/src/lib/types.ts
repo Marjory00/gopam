@@ -4,19 +4,18 @@
 
 /**
  * Defines the user object as returned by the /api/users/me endpoint.
- * Corresponds to backend/schemas/user.py -> User
  */
 export interface User {
     id: number;
     email: string;
+    username: string; // Added username for completeness (often returned)
     full_name: string | null;
     is_active: boolean;
     created_at: string; // ISO date string
 }
 
 /**
- * Defines the payload for the login request.
- * Corresponds to backend/schemas/user.py -> UserLogin
+ * Defines the payload for the login request (Form Data or JSON).
  */
 export interface LoginRequest {
     email: string;
@@ -24,10 +23,9 @@ export interface LoginRequest {
 }
 
 /**
- * Defines the response from the /api/auth/login endpoint.
- * Corresponds to backend/schemas/user.py -> Token
+ * Defines the response from the /api/auth/login endpoint (the Token object).
  */
-export interface AuthResponse {
+export interface TokenResponse { // Renamed from AuthResponse for clarity with backend schema 'Token'
     access_token: string;
     token_type: string; // Should be "bearer"
 }
@@ -36,32 +34,26 @@ export interface AuthResponse {
 
 /**
  * Defines a master ingredient object.
- * Corresponds to backend/schemas/ingredient.py -> Ingredient
  */
 export interface Ingredient {
     id: number;
     name: string;
-    unit: string | null;
+    unit: string | null; // Unit suggestion/default
     is_pantry_staple: boolean;
 }
 
 /**
- * Defines the structure for creating a new PantryItem or an association link.
- * This is the API payload for POST /api/pantry/
- * Corresponds to backend/schemas/pantry.py -> PantryItemCreate
+ * Defines the structure for creating a new PantryItem.
  */
-export interface IngredientReference {
+export interface PantryItemCreate { // Renamed for clarity: matches 'PantryItemCreate' schema
     ingredient_id: number;
-    quantity: number; // Must be a float/number for the backend
+    quantity: number; // Must be a float/number
     unit: string;
     expiration_date?: string | null; // Optional ISO date string
 }
 
-
 /**
- * Defines the structure of a PantryItem as returned by the API.
- * This includes the nested Ingredient object.
- * Corresponds to backend/schemas/pantry.py -> PantryItem
+ * Defines the structure of a PantryItem as returned by the API (includes nested Ingredient).
  */
 export interface PantryItem {
     id: number;
@@ -71,7 +63,7 @@ export interface PantryItem {
     expiration_date: string | null;
     added_at: string;
     
-    // Nested Ingredient details from the relationship
+    // Nested Ingredient details
     ingredient: Ingredient; 
 }
 
@@ -80,7 +72,6 @@ export interface PantryItem {
 
 /**
  * Defines the nested association object for reading a Recipe.
- * Corresponds to backend/schemas/recipe.py -> RecipeIngredientSchema
  */
 export interface RecipeIngredientSchema {
     quantity: number;
@@ -89,10 +80,18 @@ export interface RecipeIngredientSchema {
 }
 
 /**
- * Defines the full Recipe object returned by the API.
- * Corresponds to backend/schemas/recipe.py -> Recipe
+ * Defines the essential recipe data returned in a list view (used by RecipeCard).
+ * We keep this minimal for lists, but use the full Recipe below for details.
  */
-export interface Recipe {
+export interface RecipeList extends Omit<RecipeDetail, 'recipe_ingredients' | 'instructions'> {
+    // This is the core 'Recipe' interface we defined earlier, adjusted to align with the backend's full 'Recipe' object structure.
+}
+
+/**
+ * Defines the full Recipe object returned by the API (used by the Detail Page).
+ * Note: Includes 'recipe_ingredients' which holds the full Ingredient object.
+ */
+export interface RecipeDetail { // Renamed from Recipe to RecipeDetail for clarity
     id: number;
     created_by: number;
     created_at: string;
@@ -103,18 +102,18 @@ export interface Recipe {
     cook_time: number | null; // minutes
     servings: number | null;
     difficulty_level: string | null;
-    instructions: string;
+    instructions: string; // Instructions are mandatory (non-null) for a full recipe
     cuisine_type: string | null;
     meal_type: string | null;
     nutrition_data: string | null;
     
-    // List of association objects
+    // List of association objects with nested Ingredient details
     recipe_ingredients: RecipeIngredientSchema[]; 
 }
 
 /**
  * Defines the structure for creating a new recipe.
- * Corresponds to backend/schemas/recipe.py -> RecipeCreate
+ * NOTE: The backend expects a simple list of references for ingredients here, not the full IngredientReference object.
  */
 export interface RecipeCreate {
     title: string;
@@ -129,13 +128,17 @@ export interface RecipeCreate {
     meal_type?: string | null;
     nutrition_data?: string | null;
     
-    // List of ingredient references with quantity/unit
-    ingredients: IngredientReference[]; 
+    // FIX: Simplified the ingredient list to match typical RecipeCreate payload
+    // where you only pass the necessary details for the association.
+    ingredients: {
+        ingredient_id: number;
+        quantity: number;
+        unit: string;
+    }[]; 
 }
 
 /**
  * Defines the schema for searching and filtering recipes.
- * Corresponds to backend/schemas/recipe.py -> RecipeSearch
  */
 export interface RecipeSearch {
     query?: string | null;
@@ -150,19 +153,16 @@ export interface RecipeSearch {
 
 /**
  * Defines the expected response for the FastAPI root health check.
- * Corresponds to the simple object returned by the root endpoint.
  */
 export interface HealthCheckResponse {
     message: string;
 }
 
-// --- 5. AI RECOMMENDATIONS (Placeholder, will need refinement later) ---
-
 /**
  * Defines the structure for a recommended recipe result from the AI engine.
  */
 export interface RecommendedRecipe {
-    recipe: Recipe;
-    match_score: number; // Percentage (0-100) of ingredients available
+    recipe: RecipeList; // Use RecipeList for the nested object
+    match_score: number; // Score (0.0 to 1.0) - changed to 0-1 for standard API scores
     missing_ingredients: Ingredient[]; // List of ingredient objects the user lacks
 }

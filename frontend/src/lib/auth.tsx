@@ -1,76 +1,101 @@
-// frontend/src/lib/auth.tsx
+// frontend/src/lib/auth.ts
+// Custom hook and context for handling MOCK authentication state
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, LoginRequest } from './types'; 
+// NOTE: We are removing API imports (login, fetchCurrentUser) to bypass the backend
+import { useRouter } from 'next/navigation';
 
-// --- 1. Define Types ---
+// --- 1. Define MOCK Data ---
 
-// Interface for the user object stored in the context
-interface User {
-    id: number;
-    email: string;
-    fullName: string;
-}
+const MOCK_TOKEN = 'MOCK_TOKEN_FOR_GOPAM_PROJECT';
 
-// Interface for the Auth Context state and actions
+const MOCK_USER: User = {
+    id: 999,
+    email: 'mockuser@gopam.dev',
+    username: 'MockUser',
+    full_name: 'Project Mockup User',
+    is_active: true,
+    created_at: new Date().toISOString(),
+};
+
+// --- 2. Define Context State ---
+
 interface AuthContextType {
     isAuthenticated: boolean;
-    token: string | null;
     user: User | null;
-    login: (token: string, user: User) => void;
-    logout: () => void;
+    token: string | null;
+    isLoading: boolean;
+    error: string | null;
+    // Keep login/logout functions, but they will be mocked
+    login: (credentials: LoginRequest) => Promise<void>; 
+    logout: (redirect?: boolean) => void;
 }
 
-// --- 2. Create Context ---
-
+// Default value for the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// --- 3. Create Auth Provider Component ---
+// --- 3. Auth Provider Component ---
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    // State to hold the authentication data
-    const [token, setToken] = useState<string | null>(null);
+export function AuthProvider({ children }: AuthProviderProps) {
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
+    
+    // --- State Initialization (BYPASS LOGIN) ---
+    useEffect(() => {
+        // Automatically set the mock state
+        setUser(MOCK_USER);
+        setToken(MOCK_TOKEN);
+        // Simulate a brief loading period
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 100); 
+    }, []);
 
-    // FIX: A simple way to check authentication status
-    const isAuthenticated = !!token; 
+    // --- Core Logic (Mocked) ---
 
-    // Action to handle successful login (stores token and user info)
-    const login = (newToken: string, newUser: User) => {
-        setToken(newToken);
-        setUser(newUser);
-        // NOTE: In a real app, you would save the token/user to localStorage here
-        // localStorage.setItem('authToken', newToken);
+    // Mock login function: just logs the attempt
+    const handleLogin = async (credentials: LoginRequest) => {
+        console.log(`MOCK Login attempt for: ${credentials.email}`);
+        // In the mock, we assume success and redirect instantly
+        router.push('/recipes');
     };
 
-    // Action to handle logout
-    const logout = () => {
-        setToken(null);
+    // Mock logout function: clears state
+    const handleLogout = (redirect = true) => {
         setUser(null);
-        // localStorage.removeItem('authToken');
+        setToken(null);
+        if (redirect) {
+            router.push('/login');
+        }
     };
 
-    const contextValue: AuthContextType = {
-        isAuthenticated,
-        token,
+    const value = {
+        isAuthenticated: !!user && !!token,
         user,
-        login,
-        logout,
+        token,
+        isLoading,
+        error: null, // No errors in mock mode
+        login: handleLogin,
+        logout: handleLogout,
     };
 
     return (
-        <AuthContext.Provider value={contextValue}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
-};
+}
 
-// --- 4. Create Custom Hook ---
+// --- 4. Custom Hook ---
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
