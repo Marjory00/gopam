@@ -7,7 +7,10 @@ import {
     AuthResponse,
     LoginRequest,
     User,
-    HealthCheckResponse // Assuming this type is also defined
+    HealthCheckResponse,
+    Recipe, // <--- Ensure Recipe is imported
+    RecipeCreate, // <--- Ensure RecipeCreate is imported for creation
+    RecipeSearch // <--- Ensure RecipeSearch is imported for searching
 } from './types'; // Import necessary types
 
 // --- 1. CONFIGURATION ---
@@ -35,6 +38,7 @@ const setAuthHeader = (token: string) => ({
 });
 
 // --- 2. AUTHENTICATION ENDPOINTS ---
+// (No changes needed here)
 
 /**
  * Performs user login.
@@ -56,6 +60,7 @@ export const fetchCurrentUser = async (token: string): Promise<User> => {
 
 
 // --- 3. PANTRY ENDPOINTS ---
+// (No changes needed here)
 
 /**
  * Fetching all pantry items for the current user.
@@ -73,7 +78,7 @@ export const fetchPantryItems = async (token: string): Promise<PantryItem[]> => 
  */
 export const addPantryItem = async (
     token: string, 
-    itemData: IngredientReference // Data includes ingredient_id, quantity, unit, expiration_date
+    itemData: IngredientReference
 ): Promise<PantryItem> => {
     const response = await api.post<PantryItem>('/api/pantry/', itemData, setAuthHeader(token));
     return response.data;
@@ -84,12 +89,51 @@ export const addPantryItem = async (
  * API Route: DELETE /api/pantry/{item_id}
  */
 export const removePantryItem = async (token: string, itemId: number): Promise<void> => {
-    // A successful delete returns 204 No Content, so we don't expect data.
     await api.delete(`/api/pantry/${itemId}`, setAuthHeader(token));
 };
 
 
-// --- 4. UTILITY / HEALTH CHECK ---
+// --- 4. RECIPE ENDPOINTS (ADDED) ---
+
+/**
+ * Fetching all recipes (list) from the backend.
+ * API Route: GET /api/recipes/
+ */
+export const fetchAllRecipes = async (token: string): Promise<Recipe[]> => {
+    // Assuming the recipe route is /api/recipes/
+    const response = await api.get<Recipe[]>('/api/recipes/', setAuthHeader(token));
+    return response.data;
+};
+
+/**
+ * Fetching a single recipe by ID.
+ * API Route: GET /api/recipes/{recipe_id}
+ */
+export const fetchRecipeById = async (token: string, recipeId: number): Promise<Recipe> => {
+    const response = await api.get<Recipe>(`/api/recipes/${recipeId}`, setAuthHeader(token));
+    return response.data;
+};
+
+/**
+ * Creating a new recipe.
+ * API Route: POST /api/recipes/
+ */
+export const createRecipe = async (token: string, recipeData: RecipeCreate): Promise<Recipe> => {
+    const response = await api.post<Recipe>('/api/recipes/', recipeData, setAuthHeader(token));
+    return response.data;
+};
+
+/**
+ * Searching recipes with filters.
+ * API Route: POST /api/recipes/search
+ */
+export const searchRecipes = async (token: string, searchParams: RecipeSearch): Promise<Recipe[]> => {
+    const response = await api.post<Recipe[]>('/api/recipes/search', searchParams, setAuthHeader(token));
+    return response.data;
+};
+
+
+// --- 5. UTILITY / HEALTH CHECK (UPDATED SECTION NUMBER) ---
 
 /**
  * Health Check: GET /
@@ -99,5 +143,5 @@ export const getHealth = async (): Promise<HealthCheckResponse> => {
     return response.data;
 };
 
-// Export the configured instance for direct use if needed (e.g., in other interceptors)
+// Export the configured instance for direct use if needed
 export default api;

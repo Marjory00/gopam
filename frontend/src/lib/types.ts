@@ -133,6 +133,19 @@ export interface RecipeCreate {
     ingredients: IngredientReference[]; 
 }
 
+/**
+ * Defines the schema for searching and filtering recipes.
+ * Corresponds to backend/schemas/recipe.py -> RecipeSearch
+ */
+export interface RecipeSearch {
+    query?: string | null;
+    cuisine_type?: string | null;
+    meal_type?: string | null;
+    difficulty_level?: string | null;
+    max_prep_time?: number | null;
+    max_cook_time?: number | null;
+}
+
 // --- 4. UTILITY & AI ---
 
 /**

@@ -1,181 +1,265 @@
 // frontend/src/app/recipes/page.tsx
 
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import Head from 'next/head';
-import { Search, Tags, Timer, FlaskConical, PlusCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { Search, Timer, Clock, Utensils, Package, PlusCircle, Filter } from 'lucide-react';
 
-// Define the type for a Recipe
-interface Recipe {
-  id: number;
-  name: string;
-  description: string;
-  tags: string[];
-  prepTime: string;
+// FIX 1: Import the necessary types, API functions, and Auth hook
+import { useAuth } from '@/lib/auth';
+import { fetchAllRecipes } from '@/lib/api';
+import { Recipe } from '@/lib/types';
+
+// --- Component: RecipeCard ---
+
+interface RecipeCardProps {
+    recipe: Recipe;
 }
 
-// Placeholder Recipe Data (will be fetched from FastAPI later)
-const initialRecipes: Recipe[] = [
-  { id: 1, name: "Simple Tomato Pasta", description: "A quick and classic weeknight meal using canned ingredients.", tags: ["Italian", "Quick", "Vegetarian"], prepTime: "15 min" },
-  { id: 2, name: "Chicken and Veggie Stir-fry", description: "Customizable stir-fry based on available pantry vegetables.", tags: ["Asian", "Healthy", "Dinner"], prepTime: "25 min" },
-  { id: 3, name: "Overnight Oats", description: "Easy, healthy breakfast that requires no cooking.", tags: ["Breakfast", "Healthy", "No Cook"], prepTime: "5 min" },
-  { id: 4, name: "Garlic Butter Steak", description: "A restaurant-quality steak cooked easily in a cast iron pan.", tags: ["Meat", "Dinner", "Impressive"], prepTime: "10 min" },
-  { id: 5, name: "Lentil Soup", description: "Hearty and cheap soup, great for bulk cooking and storage.", tags: ["Vegetarian", "Batch", "Budget"], prepTime: "40 min" },
-];
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+    // Total time in minutes
+    const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
 
-/**
- * Recipe Library Page
- * Allows users to browse, search, and filter stored recipes.
- */
-export default function RecipesPage() {
-  const [recipes] = useState<Recipe[]>(initialRecipes);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    // Helper to determine badge color based on difficulty
+    const getDifficultyClass = (level: string | null) => {
+        switch (level?.toLowerCase()) {
+            case 'easy':
+                return 'bg-green-100 text-green-800';
+            case 'medium':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'hard':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
 
-  // Use memoization to efficiently filter recipes based on search term and tag
-  const filteredRecipes = useMemo(() => {
-    let list = recipes;
+    return (
+        // FIX 2: Use correct Link structure for Next.js navigation
+        <Link href={`/recipes/${recipe.id}`} className="block h-full">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col">
+                {/* Image Placeholder with fallback */}
+                <div className="bg-gray-100 h-40 w-full flex items-center justify-center text-gray-500 font-medium">
+                    {recipe.image_url ? (
+                        <img 
+                            src={recipe.image_url} 
+                            alt={recipe.title} 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src='https://placehold.co/600x400/D1D5DB/4B5563?text=Recipe+Image'; }}
+                        />
+                    ) : (
+                        <Utensils className="w-10 h-10" />
+                    )}
+                </div>
 
-    // 1. Filter by Search Term
-    if (searchTerm) {
-      list = list.filter(recipe =>
-        recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        recipe.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+                <div className="p-4 flex flex-col flex-grow">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2 truncate" title={recipe.title}>
+                        {recipe.title}
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-grow">
+                        {recipe.description || 'No description available.'}
+                    </p>
+
+                    {/* Tags derived from API fields */}
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold mt-auto mb-3">
+                        <span className={`px-2 py-1 rounded-full ${getDifficultyClass(recipe.difficulty_level)}`}>
+                            {recipe.difficulty_level || 'N/A'}
+                        </span>
+                        {recipe.cuisine_type && (
+                            <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                {recipe.cuisine_type}
+                            </span>
+                        )}
+                        {recipe.meal_type && (
+                            <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-800">
+                                {recipe.meal_type}
+                            </span>
+                        )}
+                    </div>
+                    
+                    <div className="pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
+                        <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            <span className="font-semibold text-gray-700">{totalTime} min</span>
+                        </div>
+                        <div className="flex items-center">
+                            <Timer className="w-4 h-4 mr-1" />
+                            <span className="font-semibold text-gray-700">Serves {recipe.servings || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Link>
+    );
+};
+
+
+// --- Main Page Component ---
+
+const RecipesPage = () => {
+    // FIX 3: Initialize state for data fetching
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState('');
+    // Use cuisine_type for the primary filter
+    const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null); 
+
+    const { token, isAuthenticated } = useAuth(); 
+
+    // Fetch recipes on mount
+    useEffect(() => {
+        if (!isAuthenticated || !token) {
+            setIsLoading(false);
+            return;
+        }
+
+        const loadRecipes = async () => {
+            try {
+                setIsLoading(true);
+                const data = await fetchAllRecipes(token);
+                setRecipes(data);
+                setError(null);
+            } catch (err: any) {
+                const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch recipes.';
+                setError(errorMessage);
+                setRecipes([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadRecipes();
+    }, [isAuthenticated, token]);
+
+    // Filtering recipes
+    const filteredRecipes = useMemo(() => {
+        let list = recipes;
+
+        // 1. Filter by Search Term (title or description)
+        if (searchTerm) {
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            list = list.filter(recipe =>
+                recipe.title.toLowerCase().includes(lowerSearchTerm) ||
+                (recipe.description?.toLowerCase().includes(lowerSearchTerm) ?? false)
+            );
+        }
+
+        // 2. Filter by Selected Cuisine Type
+        if (selectedCuisine) {
+            list = list.filter(recipe => recipe.cuisine_type === selectedCuisine);
+        }
+
+        return list;
+    }, [recipes, searchTerm, selectedCuisine]);
+
+    // Extract all unique cuisine types for the filter buttons
+    const uniqueCuisines = useMemo(() => {
+        const allCuisines = recipes
+            .map(recipe => recipe.cuisine_type)
+            .filter((c): c is string => c !== null && c !== undefined);
+        return Array.from(new Set(allCuisines)).sort();
+    }, [recipes]);
+
+
+    // FIX 4: Placeholder for AI generation (no alert())
+    const handleAIRecipeGeneration = () => {
+        console.log("AI Recipe Generator button clicked. Functionality TBD.");
     }
 
-    // 2. Filter by Selected Tag
-    if (selectedTag) {
-      list = list.filter(recipe => recipe.tags.includes(selectedTag));
-    }
-
-    return list;
-  }, [recipes, searchTerm, selectedTag]);
-
-  // Extract all unique tags for the filter buttons
-  const uniqueTags = useMemo(() => {
-    const allTags = recipes.flatMap(recipe => recipe.tags);
-    return Array.from(new Set(allTags)).sort();
-  }, [recipes]);
-
-  const handleAIRecipeGeneration = () => {
-    alert("Triggering AI to generate a recipe based on current pantry and preferences!");
-    // In a real app: Navigate to an AI generation form or modal
-    // Call: POST /api/ai/generate-recipe
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Head>
-        <title>Recipe Library - Gopam</title>
-      </Head>
-      <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        
-        {/* --- Header --- */}
-        <header className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
-          <h1 className="text-4xl font-extrabold text-indigo-700 flex items-center">
-            <FlaskConical className="w-8 h-8 mr-3 text-indigo-600" /> Recipe Library
-          </h1>
-          <button
-            onClick={handleAIRecipeGeneration}
-            className="px-4 py-2 bg-pink-500 text-white font-semibold rounded-lg shadow-md hover:bg-pink-600 transition-colors flex items-center"
-          >
-            <PlusCircle className="w-5 h-5 mr-2" />
-            AI Recipe Generator
-          </button>
-        </header>
-
-        <p className="mb-8 text-lg text-gray-600">
-          Browse your collection or use the AI search to find meals based on ingredients in your pantry.
-        </p>
-
-        {/* --- Search and Filter Area --- */}
-        <div className="bg-white p-6 rounded-xl shadow-xl mb-10 border border-indigo-100">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search recipes by name or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Tags className="w-5 h-5 text-gray-500 mr-1" />
-            <span className="font-semibold text-gray-700 mr-2">Filter by Tag:</span>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Removed Next/head import */}
             
-            {/* All Tag Button */}
-            <button
-              onClick={() => setSelectedTag(null)}
-              className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${!selectedTag ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-indigo-100'}`}
-            >
-              All
-            </button>
-            
-            {/* Dynamic Tag Buttons */}
-            {uniqueTags.map(tag => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
-                className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${selectedTag === tag ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-indigo-100'}`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+            <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+                
+                {/* --- Header --- */}
+                <header className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+                    <h1 className="text-4xl font-extrabold text-indigo-700 flex items-center">
+                        <Utensils className="w-8 h-8 mr-3 text-red-500" /> Recipe Library
+                    </h1>
+                    <button
+                        onClick={handleAIRecipeGeneration}
+                        className="px-4 py-2 bg-pink-500 text-white font-semibold rounded-lg shadow-md hover:bg-pink-600 transition-colors flex items-center"
+                    >
+                        <PlusCircle className="w-5 h-5 mr-2" />
+                        AI Recipe Generator
+                    </button>
+                </header>
+
+                <p className="mb-8 text-lg text-gray-600">
+                    Browse your collection or use the filters and search to find meals quickly.
+                </p>
+
+                {/* --- Search and Filter Area --- */}
+                <div className="bg-white p-6 rounded-xl shadow-xl mb-10 border border-indigo-100">
+                    <div className="relative mb-6">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search recipes by name or description..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Filter className="w-5 h-5 text-gray-500 mr-1" />
+                        <span className="font-semibold text-gray-700 mr-2">Filter by Cuisine:</span>
+                        
+                        {/* All Cuisine Button */}
+                        <button
+                            onClick={() => setSelectedCuisine(null)}
+                            className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${!selectedCuisine ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-indigo-100'}`}
+                        >
+                            All Cuisines
+                        </button>
+                        
+                        {/* Dynamic Cuisine Buttons */}
+                        {uniqueCuisines.map(cuisine => (
+                            <button
+                                key={cuisine}
+                                onClick={() => setSelectedCuisine(cuisine)}
+                                className={`px-3 py-1 text-sm font-medium rounded-full transition-all ${selectedCuisine === cuisine ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-indigo-100'}`}
+                            >
+                                {cuisine}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* --- Recipe List --- */}
+                <h3 className="text-2xl font-semibold mb-4 text-gray-700">Found Recipes ({filteredRecipes.length})</h3>
+                
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+                        **Error Fetching Recipes:** {error}
+                    </div>
+                )}
+
+                {isLoading ? (
+                    <div className="text-center p-10 text-xl text-gray-500">
+                        <Package className="w-6 h-6 animate-spin mx-auto mb-3" />
+                        Loading recipes...
+                    </div>
+                ) : filteredRecipes.length === 0 ? (
+                    <div className="text-center p-10 border-dashed border-2 border-gray-300 rounded-lg">
+                        <p className="text-xl text-gray-500">No recipes found matching your criteria.</p>
+                        <p className="mt-2 text-gray-400">Try adjusting your search term or filter.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredRecipes.map(recipe => (
+                            <RecipeCard key={recipe.id} recipe={recipe} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-
-        {/* --- Recipe List --- */}
-        <h3 className="text-2xl font-semibold mb-4 text-gray-700">Found Recipes ({filteredRecipes.length})</h3>
-        
-        {filteredRecipes.length === 0 ? (
-          <p className="text-gray-500 italic p-6 border border-red-200 rounded-lg bg-red-50">
-            No recipes found matching your criteria. Try adjusting your search term or tag filter.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRecipes.map(recipe => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
 }
 
-// Simple Recipe Card Component
-function RecipeCard({ recipe }: { recipe: Recipe }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer">
-      <div className="p-5">
-        <h4 className="text-xl font-bold text-indigo-700 mb-2">{recipe.name}</h4>
-        <p className="text-gray-600 mb-3 text-sm min-h-[40px]">{recipe.description}</p>
-        
-        <div className="flex flex-wrap gap-1 mb-3 border-t border-gray-100 pt-3">
-          {recipe.tags.map(tag => (
-            <span key={tag} className="text-xs font-medium bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex justify-between items-center mt-3">
-          <p className="text-sm font-semibold text-gray-700 flex items-center">
-            <Timer className="w-4 h-4 mr-1 text-blue-500" />
-            Prep: <span className="font-normal ml-1">{recipe.prepTime}</span>
-          </p>
-          <button
-            onClick={() => alert(`Viewing details for: ${recipe.name}`)}
-            className="px-3 py-1 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors shadow"
-          >
-            View Recipe
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+export default RecipesPage;
