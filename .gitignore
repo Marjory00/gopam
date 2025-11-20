@@ -1,0 +1,92 @@
+# .gitignore for Gopam Project
+
+# -----------------
+# Project-wide / Root Folder (gopam/)
+# -----------------
+# Dependencies
+**/node_modules/            # IGNORE ALL node_modules FOLDERS RECURSIVELY
+/package-lock.json          # Explicitly ignore package-lock in the main project root
+.env                        # New: Ignore root .env file
+# Ignore the main README and project file list
+# README.md
+# Docker setup files
+docker-compose.yml
+Dockerfile*
+
+# Other
+
+node_modules
+package-lock.json
+*.log                       #[NEW] Ignore all log files globally (e.g., uvicorn logs)
+*.log.*                     #[NEW] Ignore rotated log files
+
+
+# -----------------
+# Python/FastAPI (backend/)
+# -----------------
+# Virtual environment
+/backend/venv/
+/backend/__pycache__/
+/backend/*.pyc
+/backend/.env               # Local environment variables
+/backend/instance/          # Flask/Alembic instance folder
+/backend/.pytest_cache
+/backend/gopam_dev.db       # Adding development DB file to ignore list
+/backend/node_modules       # Explicitly ignore if any node dependencies leak into backend
+/backend/package-lock.json  # Explicitly ignore if any lock file leaks into backend
+*.sqlite3                   # New: Ignore any sqlite database files
+.DS_Store                   # New: Ignore Mac OS files inside subdirectories
+/backend/coverage.xml       #[NEW] Ignore Python coverage report XML
+/backend/.coverage          #[NEW] Ignore Python coverage data file
+/backend/dist/              #[NEW] Ignore potential distribution/build folders
+/backend/build/             #[NEW] Ignore potential build folders
+
+# Database Migration files (Alembic)
+/backend/alembic.ini
+/database/migrations/versions/
+
+# -----------------
+# Node/Next.js (frontend/)
+# -----------------
+# Dependencies (Covered by the recursive instruction above, but kept for clarity)
+/frontend/node_modules
+/frontend/.npm
+
+# Dependency lock files
+/frontend/package-lock.json
+/frontend/npm-debug.log
+/frontend/yarn.lock*
+/frontend/pnpm-lock.yaml
+
+# Production and build outputs
+/frontend/.next/
+/frontend/out/
+/frontend/dist/
+.env                        #[NEW] Ignore generic .env file inside frontend, if used
+.env.example
+backend/gopam_dev.db
+
+# Logs
+/frontend/npm-debug.log*
+/frontend/yarn-error.log
+
+# Local environment files
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.production.local
+/frontend/.env.staging.local
+
+# TypeScript cache
+/frontend/.tsbuildinfo
+
+# -----------------
+# IDE/Editor files
+# -----------------
+.vscode/
+.idea/
+
+# -----------------
+# Operating System
+# -----------------
+.DS_Store
+Thumbs.db
